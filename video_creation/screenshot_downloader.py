@@ -1,17 +1,15 @@
-from playwright.sync_api import sync_playwright, ViewportSize
-from pathlib import Path
-from rich.progress import track
-from utils.console import print_step, print_substep
 import json
+from pathlib import Path
+
+from playwright.sync_api import sync_playwright, ViewportSize
+from rich.progress import track
+
+from settings import settings
+from utils.console import print_step, print_substep
 
 
-def download_screenshots_of_reddit_posts(reddit_object, screenshot_num, theme):
-    """Downloads screenshots of reddit posts as they are seen on the web.
-
-    Args:
-        reddit_object: The Reddit Object you received in askreddit.py
-        screenshot_num: The number of screenshots you want to download.
-    """
+def download_screenshots_of_reddit_posts(thread, chosen_comments):
+    """Downloads screenshots of reddit posts as they are seen on the web."""
     print_step("Downloading Screenshots of Reddit Posts 📷")
 
     # ! Make sure the reddit screenshots folder exists
@@ -23,14 +21,14 @@ def download_screenshots_of_reddit_posts(reddit_object, screenshot_num, theme):
         browser = p.chromium.launch()
         context = browser.new_context()
 
-        if theme.casefold() == "dark":
+        if settings.THEME.casefold() == "dark":
             cookie_file = open('video_creation/cookies.json')
             cookies = json.load(cookie_file)
             context.add_cookies(cookies)
 
         # Get the thread screenshot
         page = context.new_page()
-        page.goto(reddit_object["thread_url"])
+        page.goto(thread.url)
         page.set_viewport_size(ViewportSize(width=1920, height=1080))
         if page.locator('[data-testid="content-gate"]').is_visible():
             # This means the post is NSFW and requires to click the proceed button.
@@ -43,18 +41,13 @@ def download_screenshots_of_reddit_posts(reddit_object, screenshot_num, theme):
         )
 
         for idx, comment in track(
-            enumerate(reddit_object["comments"]), "Downloading screenshots..."
+            enumerate(chosen_comments), "Downloading screenshots..."
         ):
-
-            # Stop if we have reached the screenshot_num
-            if idx >= screenshot_num:
-                break
-
             if page.locator('[data-testid="content-gate"]').is_visible():
                 page.locator('[data-testid="content-gate"] button').click()
 
-            page.goto(f'https://reddit.com{comment["comment_url"]}')
-            page.locator(f"#t1_{comment['comment_id']}").screenshot(
+            page.goto(f'https://reddit.com{comment.permalink}')
+            page.locator(f"#t1_{comment.id}").screenshot(
                 path=f"assets/png/comment_{idx}.png"
             )
 

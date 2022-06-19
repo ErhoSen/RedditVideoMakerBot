@@ -9,14 +9,12 @@ console = Console()
 
 def print_markdown(text):
     """Prints a rich info message. Support Markdown syntax."""
-
     md = Padding(Markdown(text), 2)
     console.print(md)
 
 
 def print_step(text):
     """Prints a rich info message."""
-
     panel = Panel(Text(text, justify="left"))
     console.print(panel)
 

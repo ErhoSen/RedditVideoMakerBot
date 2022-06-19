@@ -1,3 +1,4 @@
+from moviepy.audio.fx.volumex import volumex
 from moviepy.editor import (
     VideoFileClip,
     AudioFileClip,
@@ -7,13 +8,21 @@ from moviepy.editor import (
     CompositeAudioClip,
     CompositeVideoClip,
 )
-from utils.console import print_step
 
+from utils.console import print_step
+from utils.db import Thread
 
 W, H = 1080, 1920
 
 
-def make_final_video(number_of_clips):
+def get_background_audio(duration: int) -> AudioFileClip:
+    bg_audio_clip = AudioFileClip("assets/mp3/background.mp3")
+    bg_audio_clip = bg_audio_clip.set_duration(duration)
+    bg_audio_clip = bg_audio_clip.fx(volumex, 0.4)
+    return bg_audio_clip
+
+
+def make_final_video(thread: Thread, chosen_comments: list):
     print_step("Creating the final video...")
     VideoFileClip.reW = lambda clip: clip.resize(width=W)
     VideoFileClip.reH = lambda clip: clip.resize(width=H)
@@ -26,15 +35,16 @@ def make_final_video(number_of_clips):
     )
     # Gather all audio clips
     audio_clips = []
-    for i in range(0, number_of_clips):
+    for i in range(0, len(chosen_comments)):
         audio_clips.append(AudioFileClip(f"assets/mp3/{i}.mp3"))
     audio_clips.insert(0, AudioFileClip(f"assets/mp3/title.mp3"))
     audio_concat = concatenate_audioclips(audio_clips)
-    audio_composite = CompositeAudioClip([audio_concat])
+    bg_audio_clip = get_background_audio(audio_concat.duration)
+    audio_composite = CompositeAudioClip([audio_concat, bg_audio_clip])
 
     # Gather all images
     image_clips = []
-    for i in range(0, number_of_clips):
+    for i in range(0, len(chosen_comments)):
         image_clips.append(
             ImageClip(f"assets/png/comment_{i}.png")
             .set_duration(audio_clips[i + 1].duration)
@@ -49,13 +59,13 @@ def make_final_video(number_of_clips):
         .resize(width=W - 100),
     )
     image_concat = concatenate_videoclips(image_clips).set_position(
-        ("center", "center")
+        ("center", 250)
     )
     image_concat.audio = audio_composite
     final = CompositeVideoClip([background_clip, image_concat])
+    filename = thread.filename
     final.write_videofile(
-        "assets/final_video.mp4", fps=30, audio_codec="aac", audio_bitrate="192k"
+        filename, fps=30, audio_codec="aac", audio_bitrate="192k"
     )
 
-    for i in range(0, number_of_clips):
-        pass
+    return filename

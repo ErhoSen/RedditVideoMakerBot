@@ -1,73 +1,53 @@
-from utils.console import print_markdown, print_step, print_substep
-import praw
-import random
-from dotenv import load_dotenv
-import os
+from sqlalchemy.exc import IntegrityError
+
+from utils.console import print_substep
+from utils.db import save_thread, Thread, Comment
+from utils.reddit import reddit_client, choose_the_thread, choose_the_comments
 
 
 def get_subreddit_threads():
-
     """
     Returns a list of threads from the AskReddit subreddit.
     """
+    threads = reddit_client.get_subreddit_threads()
+    submission = choose_the_thread(threads)
 
-    load_dotenv()
+    print_substep(f"Video will be: {submission.title} :thumbsup:")
+    thread = Thread(
+        id=submission.id,
+        title=submission.title,
+        url=submission.url,
+    )
+    comments = []
+    for top_level_comment in choose_the_comments(submission.comments):
+        try:
+            comments.append(
+                Comment(id=top_level_comment.id, body=top_level_comment.body, permalink=top_level_comment.permalink)
+            )
+        except AttributeError:
+            continue
 
-    print_step("Getting AskReddit threads...")
+    print_substep("Received AskReddit threads successfully.", style="bold green")
 
-    if os.getenv("REDDIT_2FA").lower() == "yes":
-        print(
-            "\nEnter your two-factor authentication code from your authenticator app.\n"
-        )
-        code = input("> ")
-        print()
-        pw = os.getenv("REDDIT_PASSWORD")
-        passkey = f"{pw}:{code}"
-    else:
-        passkey = os.getenv("REDDIT_PASSWORD")
+    return thread, comments
 
+
+def collect_subreddit_threads():
+    """
+    Returns a list of threads from the AskReddit subreddit.
+    """
     content = {}
 
-    reddit = praw.Reddit(
-        client_id=os.getenv("REDDIT_CLIENT_ID"),
-        client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
-        user_agent="Accessing AskReddit threads",
-        username=os.getenv("REDDIT_USERNAME"),
-        password=passkey,
-    )
+    raw_threads = reddit_client.get_subreddit_threads()
 
-    if os.getenv("SUBREDDIT"):
-        subreddit = reddit.subreddit(os.getenv("SUBREDDIT"))
-    else:
-        # ! Prompt the user to enter a subreddit
+    for raw_thread in raw_threads:
         try:
-            subreddit = reddit.subreddit(
-                input("What subreddit would you like to pull from? ")
-            )
-        except ValueError:
-            subreddit = reddit.subreddit("askreddit")
-            print_substep("Subreddit not defined. Using AskReddit.")
+            thread = save_thread(raw_thread)
+        except IntegrityError:
+            print_substep(f"Thread {raw_thread.id} already exists.", style="bold red")
+        else:
+            print_substep(f"Thread saved into db: {thread.title}")
 
-    threads = subreddit.hot(limit=25)
-    submission = list(threads)[random.randrange(0, 25)]
-    print_substep(f"Video will be: {submission.title} :thumbsup:")
-    try:
-
-        content["thread_url"] = submission.url
-        content["thread_title"] = submission.title
-        content["comments"] = []
-
-        for top_level_comment in submission.comments:
-            content["comments"].append(
-                {
-                    "comment_body": top_level_comment.body,
-                    "comment_url": top_level_comment.permalink,
-                    "comment_id": top_level_comment.id,
-                }
-            )
-
-    except AttributeError as e:
-        pass
     print_substep("Received AskReddit threads successfully.", style="bold green")
 
     return content

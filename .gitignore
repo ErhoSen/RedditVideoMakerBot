@@ -1,5 +1,8 @@
-assets/
-.env
-reddit-bot-351418-5560ebc49cac.json
+.idea
 __pycache__
-out
+.DS_Store
+
+.env
+google_credentials.json
+assets/
+*.sqlite3
