@@ -11,3 +11,5 @@ sqlmodel
 SQLAlchemy==1.4.35
 pyinstrument
 python-slugify
+sox==1.4.1
+requests

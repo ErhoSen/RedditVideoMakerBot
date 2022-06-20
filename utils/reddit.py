@@ -45,7 +45,7 @@ def choose_the_comments(comments: CommentForest, limit: int = 15) -> dict:
         if comment.body in ('[removed]', '[deleted]'):
             continue
         # check if comment is too long
-        if comment.body.count(" ") > 30:
+        if comment.body.count(" ") > 50:
             continue
         # check if we have reached the limit
         if i < limit:

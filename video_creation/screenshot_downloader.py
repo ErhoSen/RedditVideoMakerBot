@@ -21,9 +21,8 @@ def download_screenshots_of_reddit_posts(thread, chosen_comments):
         browser = p.chromium.launch()
         context = browser.new_context()
 
-        if settings.THEME.casefold() == "dark":
-            cookie_file = open('video_creation/cookies.json')
-            cookies = json.load(cookie_file)
+        with open(settings.theme_cookie_file, 'r') as f:
+            cookies = json.load(f)
             context.add_cookies(cookies)
 
         # Get the thread screenshot
@@ -35,11 +34,13 @@ def download_screenshots_of_reddit_posts(thread, chosen_comments):
 
             print_substep("Post is NSFW. You are spicy...")
             page.locator('[data-testid="content-gate"] button').click()
+            page.locator(
+                '[data-click-id="text"] button'
+            ).click()  # Remove "Click to see nsfw" Button in Screenshot
 
         page.locator('[data-test-id="post-content"]').screenshot(
             path="assets/png/title.png"
         )
-
         for idx, comment in track(
             enumerate(chosen_comments), "Downloading screenshots..."
         ):
@@ -50,6 +51,4 @@ def download_screenshots_of_reddit_posts(thread, chosen_comments):
             page.locator(f"#t1_{comment.id}").screenshot(
                 path=f"assets/png/comment_{idx}.png"
             )
-
-        print_substep("Screenshots downloaded Successfully.",
-                      style="bold green")
+        print_substep("Screenshots downloaded Successfully.", style="bold green")

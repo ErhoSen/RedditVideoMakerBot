@@ -5,6 +5,7 @@ from sqlalchemy import create_engine, Column, TEXT
 from sqlmodel import Field, SQLModel, Session, Relationship, select
 
 from utils.reddit import choose_the_comments
+from utils.voice import sanitize_text
 
 
 class Thread(SQLModel, table=True):
@@ -22,6 +23,10 @@ class Thread(SQLModel, table=True):
         slug = slugify(self.title, max_length=50, word_boundary=True)
         return f"assets/out/{slug}.mp4"
 
+    @property
+    def sanitized_text(self):
+        return sanitize_text(self.title)
+
 
 class Comment(SQLModel, table=True):
     id: str = Field(primary_key=True)
@@ -32,8 +37,12 @@ class Comment(SQLModel, table=True):
     thread_id: str = Field(foreign_key='thread.id')
     thread: Thread = Relationship(back_populates="comments")
 
+    @property
+    def sanitized_text(self):
+        return sanitize_text(self.body)
 
-engine = create_engine("sqlite:///reddit.sqlite3")
+
+engine = create_engine("sqlite:///video_creation/data/reddit.sqlite3")
 
 
 def create_db_and_tables():

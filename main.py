@@ -16,11 +16,11 @@ app = typer.Typer()
 
 def _process_thread(thread, comments, _background: Background) -> str:
     print_markdown("Processing thread: {}".format(thread.title))
-    chosen_comments, length = save_text_to_mp3(thread.title, comments)
+    chosen_comments, length = save_text_to_mp3(thread, comments)
     download_screenshots_of_reddit_posts(thread, chosen_comments)
     download_background(_background)
     chop_background_video(_background, length)
-    filename = make_final_video(thread, chosen_comments)
+    filename = make_final_video(thread, chosen_comments, length)
     return filename
 
 
